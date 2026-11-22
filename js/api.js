@@ -21,7 +21,7 @@ const API = {
         e.preventDefault();
         try {
           const r = await fetch(this.base + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: d.querySelector('input').value }) });
-          const j = await r.json().catch(() => ({ error: 'No hay servidor (API) disponible' }));
+          const j = await r.json().catch(() => ({ error: 'No hay servidor (API) disponible (código ' + r.status + ')' }));
           if (!r.ok) throw new Error(j.error);
           sessionStorage.setItem('mb-token', j.token); d.remove(); this._g = null; ok();
         } catch (err) { d.querySelector('small').textContent = err.message; }

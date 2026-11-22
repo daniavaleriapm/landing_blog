@@ -6,12 +6,16 @@ const newest = (a, b) => (a.date < b.date ? 1 : -1);
 
 module.exports = async (req, res) => {
   try {
-    const [v, a, b, c, d] = [].concat(req.query.path || []), m = req.method, body = req.body;
+    // En Vercel la ruta puede llegar como texto ("v1/auth/login") y en local como lista: aceptamos ambas
+    const raw = req.query && req.query.path ? [].concat(req.query.path).join('/') : new URL(req.url, 'http://x').pathname.replace(/^\/api\//, '');
+    const [v, a, b, c, d] = raw.split('/').filter(Boolean), m = req.method, body = req.body;
     if (v !== 'v1') throw fail(404, 'Ruta no encontrada');
     const posts = () => db.get('posts', []);
 
     // ---------- API pública (lo que ven los visitantes) ----------
     if (a === 'public') {
+      // Diagnóstico: solo dice si cada pieza está configurada (nunca muestra valores secretos)
+      if (b === 'health') return send(res, 200, { api: true, database: !!(process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL), admin_password: !!process.env.ADMIN_PASSWORD, auth_secret: !!process.env.AUTH_SECRET, blob: !!process.env.BLOB_READ_WRITE_TOKEN });
       if (b === 'landing' && m === 'GET') return send(res, 200, await db.get('landing', defaults));
       if (b === 'posts' && !c && m === 'GET')
         return send(res, 200, (await posts()).filter(p => p.status === 'published').sort(newest)
