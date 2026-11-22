@@ -7,7 +7,8 @@ const newest = (a, b) => (a.date < b.date ? 1 : -1);
 module.exports = async (req, res) => {
   try {
     // En Vercel la ruta puede llegar como texto ("v1/auth/login") y en local como lista: aceptamos ambas
-    const raw = req.query && req.query.path ? [].concat(req.query.path).join('/') : new URL(req.url, 'http://x').pathname.replace(/^\/api\//, '');
+    const urlPath = new URL(req.url, 'http://x').pathname.replace(/^\/api\//, '');
+    const raw = urlPath.startsWith('v1') ? urlPath : [].concat((req.query && req.query.path) || []).join('/');
     const [v, a, b, c, d] = raw.split('/').filter(Boolean), m = req.method, body = req.body;
     if (v !== 'v1') throw fail(404, 'Ruta no encontrada');
     const posts = () => db.get('posts', []);
