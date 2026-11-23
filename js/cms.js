@@ -9,7 +9,7 @@ const resize = (file, max, jpg) => new Promise(ok => { const r = new FileReader(
   c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL(!jpg && file.type === 'image/png' ? 'image/png' : 'image/jpeg', .85)); }; im.src = r.result; }; r.readAsDataURL(file); });
 
 // ---- Navegación: Blog | Landing ----
-const G = { blog: ['new', 'pub', 'draft'], landing: ['about', 'languages', 'events', 'projects'] };
+const G = { blog: ['new', 'pub', 'draft'], landing: ['about', 'languages', 'events', 'projects'], stats: ['stats'] };
 function show(g, v) {
   v = v || G[g][0];
   $$('#main button').forEach(b => b.classList.toggle('on', b.dataset.g === g));
@@ -17,18 +17,30 @@ function show(g, v) {
   $$('.sub button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   $$('.view').forEach(s => s.classList.toggle('show', s.id === 'v-' + v));
   history.replaceState(null, '', '#' + g + '/' + v);
+  if (g === 'stats') loadStats();
 }
 $$('#main button').forEach(b => b.onclick = () => show(b.dataset.g));
 $$('.sub button').forEach(b => b.onclick = () => show(b.closest('.sub').dataset.sub, b.dataset.v));
 $('#out').onclick = () => { sessionStorage.removeItem('mb-token'); location.reload(); };
 
 // ---- BLOG ----
+const ed = $('#text'); let rg;
+const getText = () => ed.textContent.trim() ? Rich.clean(ed.innerHTML).trim() : '';
+document.addEventListener('selectionchange', () => { const s = getSelection(); if (s.rangeCount && ed.contains(s.anchorNode)) rg = s.getRangeAt(0); });
+function format(c, v) { ed.focus(); if (rg) { const s = getSelection(); s.removeAllRanges(); s.addRange(rg); } document.execCommand('styleWithCSS', false, true); document.execCommand(c, false, v); }
+$$('.tb button').forEach(b => { b.onmousedown = e => e.preventDefault(); b.onclick = () => {
+  if (b.dataset.c !== 'link') return format(b.dataset.c);
+  const u = prompt('Dirección del enlace (empieza con https://)'); if (u && /^(https?:|mailto:)/i.test(u.trim())) format('createLink', u.trim()); }; });
+$('#fcolor').oninput = e => { $('#ca').style.color = e.target.value; format('foreColor', e.target.value); };
+$('#fback').oninput = e => { $('#cb').style.color = e.target.value; format('hiliteColor', e.target.value); };
+$('#fsize').onchange = e => { if (e.target.value) format('fontSize', e.target.value); e.target.value = ''; };
+ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); });
 let img = '', edit = null, posts = [];
 const FLD = { Título: 'title', Descripción: 'text', Imagen: 'drop' };
 const missing = (p, full) => [!p.title && 'Título', full && !p.text && 'Descripción', full && !p.image && 'Imagen'].filter(Boolean);
 const flag = m => { $$('.bad').forEach(e => e.classList.remove('bad')); m.forEach(n => $('#' + FLD[n]).classList.add('bad')); };
-function clear() { edit = null; img = ''; $('#title').value = $('#text').value = ''; $('#prev').hidden = true; $('#fname').textContent = 'Ninguna imagen seleccionada'; $('#ft').textContent = 'Nueva publicación'; $('#cancel').hidden = true; flag([]); }
-function load(p) { show('blog', 'new'); edit = p.id; img = p.image || ''; $('#title').value = p.title; $('#text').value = p.text; $('#prev').src = img; $('#prev').hidden = !img; $('#fname').textContent = img ? 'Imagen actual' : 'Ninguna imagen seleccionada'; $('#ft').textContent = 'Editando publicación'; $('#cancel').hidden = false; }
+function clear() { edit = null; img = ''; $('#title').value = ''; $('#text').innerHTML = ''; $('#prev').hidden = true; $('#fname').textContent = 'Ninguna imagen seleccionada'; $('#ft').textContent = 'Nueva publicación'; $('#cancel').hidden = true; flag([]); }
+function load(p) { show('blog', 'new'); edit = p.id; img = p.image || ''; $('#title').value = p.title; $('#text').innerHTML = Rich.render(p.text); $('#prev').src = img; $('#prev').hidden = !img; $('#fname').textContent = img ? 'Imagen actual' : 'Ninguna imagen seleccionada'; $('#ft').textContent = 'Editando publicación'; $('#cancel').hidden = false; }
 function drawPosts() {
   for (const [st, box] of [['published', '#v-pub'], ['draft', '#v-draft']]) {
     const ps = posts.filter(p => p.status === st).sort((a, b) => b.date.localeCompare(a.date));
@@ -38,7 +50,7 @@ function drawPosts() {
 }
 const refresh = async () => { posts = await API.req('/posts', {}, true); drawPosts(); };
 async function submit(status) {
-  const p = { title: $('#title').value.trim(), text: $('#text').value.trim(), image: img }, m = missing(p, status === 'published');
+  const p = { title: $('#title').value.trim(), text: getText(), image: img }, m = missing(p, status === 'published');
   flag(m); if (m.length) return note('Falta completar: ' + m.join(', ') + '.');
   try {
     if (p.image.startsWith('data:')) p.image = await API.upload(p.image);
@@ -101,6 +113,19 @@ function drawLanding() {
 $$('[data-add]').forEach(b => b.onclick = () => { const k = b.dataset.add; data[k].push({ ...SCHEMA[k].blank }); save(); drawLanding(); });
 $('#aboutText').oninput = e => { data.about.text = e.target.value; save(); };
 $('#aboutFile').onchange = async e => { const f = e.target.files[0]; if (!f) return; const u = await resize(f, 700); data.about.photo = u; $('#aboutPhoto').src = u; save(); };
+
+// ---- ESTADÍSTICAS ----
+async function loadStats() {
+  try {
+    const s = await API.req('/stats', {}, true), last = s.days[s.days.length - 1], max = Math.max(1, ...s.days.map(d => Math.max(d.blog, d.landing)));
+    const kpi = [['Vistas del blog', s.total.blog], ['Vistas de la landing', s.total.landing], ['Visitantes del blog hoy', last.visitors], ['Vistas del blog (14 días)', s.days.reduce((a, d) => a + d.blog, 0)], ['Corazones', s.posts.reduce((a, p) => a + p.hearts, 0)]];
+    $('#kpis').innerHTML = kpi.map(([l, v]) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('');
+    $('#chart').innerHTML = s.days.map(d => `<div class="col" title="${d.date}: blog ${d.blog}, landing ${d.landing}"><div class="pair"><i class="b1" style="height:${d.blog / max * 100}%"></i><i class="b2" style="height:${d.landing / max * 100}%"></i></div><small>${d.date.slice(8)}/${d.date.slice(5, 7)}</small></div>`).join('');
+    $('#topposts').innerHTML = s.posts.length ? '<table><tr><th>Publicación</th><th>Vistas</th><th>♥</th></tr>' + s.posts.map(p => `<tr><td>${esc(p.title)}</td><td>${p.views}</td><td>${p.hearts}</td></tr>`).join('') + '</table>' : '<p class="empty">Aún no hay publicaciones.</p>';
+  } catch (e) { say('No se pudieron cargar las estadísticas: ' + e.message); }
+}
+try { $('#skip').checked = !!localStorage.getItem('mb-skip'); } catch (e) {}
+$('#skip').onchange = e => { try { e.target.checked ? localStorage.setItem('mb-skip', '1') : localStorage.removeItem('mb-skip'); } catch (err) {} };
 
 // ---- Arranque ----
 const [g0, v0] = location.hash.slice(1).split('/'); show(G[g0] ? g0 : 'blog', G[g0] && G[g0].includes(v0) ? v0 : undefined);

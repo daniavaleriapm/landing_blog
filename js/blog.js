@@ -18,15 +18,25 @@ const MB={
 };
 // ---- Vista pública: datos desde la API (sin servidor se muestran ejemplos) ----
 if(document.getElementById('feed')){
- const feed=document.getElementById('feed'),sort=document.getElementById('sort');let desc=true,all=[];
- const draw=id=>{const lk=MB.liked(),ps=MB.byDate(all,desc);
-  feed.innerHTML=ps.length?ps.map(p=>`<article class="post">${p.image?`<div class="shot"><img src="${MB.esc(p.image)}" alt=""></div>`:''}<h3>${MB.esc(p.title)}</h3><time datetime="${p.date}">${MB.fmt(p.date)}</time><p>${MB.esc(p.text)}</p><footer><button class="heart${lk.includes(p.id)?' on':''}" data-id="${p.id}" aria-pressed="${lk.includes(p.id)}" aria-label="Me encanta">${MB.heart}<b>${p.hearts||0}</b></button></footer></article>`).join(''):'<p class="empty">Todavía no hay publicaciones.</p>';
-  const b=id&&feed.querySelector(`[data-id="${id}"]`);if(b&&b.classList.contains('on'))b.classList.add('pop')};
- feed.addEventListener('click',async e=>{const b=e.target.closest('.heart');if(!b)return;
+ const feed=document.getElementById('feed'),sort=document.getElementById('sort'),open=new Set();let desc=true,all=[],rt;
+ // La publicación más reciente se muestra completa; las demás en vista previa hasta pulsar "Leer más"
+ const fit=()=>feed.querySelectorAll('.txt.clamp').forEach(t=>{const s=t.scrollHeight<=t.clientHeight+2;t.classList.toggle('short',s);const m=t.closest('.post').querySelector('.more');if(m)m.hidden=s});
+ const draw=id=>{const lk=MB.liked(),ps=MB.byDate(all,desc),top=MB.byDate(all,true)[0];
+  feed.innerHTML=ps.length?ps.map(p=>`<article class="post${p===top?' latest':''}${open.has(p.id)?' open':''}" data-id="${p.id}">${p.image?`<div class="shot"><img src="${MB.esc(p.image)}" alt=""></div>`:''}<h3>${MB.esc(p.title)}</h3><time datetime="${p.date}">${MB.fmt(p.date)}</time><div class="txt${p===top||open.has(p.id)?'':' clamp'}">${Rich.render(p.text)}</div><footer>${p===top?'':`<button class="more" type="button" data-more="${p.id}" aria-expanded="${open.has(p.id)}">${open.has(p.id)?'Ver menos':'Leer más'}</button>`}<button class="heart${lk.includes(p.id)?' on':''}" data-id="${p.id}" aria-pressed="${lk.includes(p.id)}" aria-label="Me encanta">${MB.heart}<b>${p.hearts||0}</b></button></footer></article>`).join(''):'<p class="empty">Todavía no hay publicaciones.</p>';
+  fit();const b=id&&feed.querySelector(`.heart[data-id="${id}"]`);if(b&&b.classList.contains('on'))b.classList.add('pop')};
+ feed.addEventListener('click',async e=>{
+  if(e.target.closest('a'))return;
+  const m=e.target.closest('[data-more],.txt.clamp:not(.short)');
+  if(m){const a=m.closest('.post'),id=a.dataset.id,on=!open.has(id);on?open.add(id):open.delete(id);
+   a.classList.toggle('open',on);a.querySelector('.txt').classList.toggle('clamp',!on);
+   const b=a.querySelector('.more');b.textContent=on?'Ver menos':'Leer más';b.setAttribute('aria-expanded',on);
+   if(!on)a.scrollIntoView({block:'nearest'});return}
+  const b=e.target.closest('.heart');if(!b)return;
   const id=b.dataset.id,p=all.find(x=>x.id===id),lk=MB.liked(),on=!lk.includes(id);
   if(on){lk.push(id);p.hearts=(p.hearts||0)+1}else{lk.splice(lk.indexOf(id),1);p.hearts=Math.max(0,(p.hearts||0)-1)}
   MB.setLiked(lk);draw(id);
   try{p.hearts=(await API.req('/public/posts/'+id+'/hearts',{method:on?'POST':'DELETE'})).hearts;draw(id)}catch(err){}});
  sort.onclick=()=>{desc=!desc;sort.textContent=desc?'Más recientes':'Más antiguas';draw()};
+ addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(fit,150)});if(document.fonts)document.fonts.ready.then(fit);
  API.req('/public/posts').then(r=>all=r).catch(()=>all=MB.samples).then(()=>draw());
 }

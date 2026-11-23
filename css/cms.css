@@ -32,3 +32,20 @@ input:focus,textarea:focus{outline:none;border-color:var(--rosa)}
 .empty{text-align:center;color:var(--cafe2);padding:22px}
 dialog{width:min(92vw,380px);color:var(--cafe);border:3px solid var(--rosa);border-radius:16px}
 dialog::backdrop{background:rgba(107,66,38,.35)}dialog p{margin:0 0 14px}
+
+.tb{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tb button,.tb select,.clr{font:inherit;font-size:.85rem;color:var(--cafe);background:#fff;border:2px solid var(--suave);border-radius:8px;padding:3px 9px;cursor:pointer}
+.tb button:hover,.tb select:hover,.clr:hover{border-color:var(--rosa)}
+.clr{display:flex;align-items:center;gap:4px;margin:0}.clr input{width:22px;height:22px;padding:0;border:0;background:none}
+.editor{min-height:150px;padding:10px;color:var(--cafe);font-size:16px;background:#fff;border:2px solid var(--suave);border-radius:10px;overflow:auto;overflow-wrap:anywhere}
+.editor:focus{outline:none;border-color:var(--rosa)}.editor a{color:var(--rosa)}.editor ul,.editor ol{margin:.3em 0;padding-left:1.4em}
+
+.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.kpi{flex:1;min-width:130px;border:2px solid var(--suave);border-radius:14px;padding:12px;text-align:center;box-shadow:0 4px 12px rgba(209,83,143,.12)}
+.kpi b{display:block;font:700 1.6rem 'Orbitron',sans-serif;color:var(--rosa)}.kpi span{font-size:.8rem;color:var(--cafe2)}
+.chart{display:flex;gap:4px;height:170px}.col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;min-width:0}
+.pair{display:flex;align-items:flex-end;justify-content:center;gap:2px;width:100%;height:calc(100% - 18px)}
+.pair i,.legend i{display:inline-block;border-radius:4px 4px 0 0;min-height:2px}.pair i{width:42%;max-width:16px}.legend i{width:12px;height:12px;margin:0 4px 0 12px}
+.b1{background:var(--rosa)}.b2{background:var(--cafe)}.col small{font-size:.65rem;color:var(--cafe2)}.legend{margin:10px 0 0;font-size:.85rem}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:8px 6px;border-bottom:2px solid var(--suave)}th{color:var(--cafe2);font-weight:400;font-size:.85rem}td:nth-child(n+2),th:nth-child(n+2){text-align:right;white-space:nowrap}
+.chk{display:flex;gap:8px;align-items:center;grid-template-columns:none}

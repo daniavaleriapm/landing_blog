@@ -30,6 +30,18 @@ module.exports = async (req, res) => {
         await db.set('likes_' + c, likes); p.hearts = likes.length; await db.set('posts', all);
         return send(res, 200, { hearts: p.hearts });
       }
+      // Estadísticas anónimas: solo cuenta; la huella cambia cada día y nunca se guarda la IP
+      if (b === 'views' && m === 'POST') {
+        const page = body && body.page, ids = [].concat((body && body.posts) || []).filter(x => typeof x === 'string' && x.length < 60).slice(0, 50);
+        if ((!page && !ids.length) || (page && !['blog', 'landing'].includes(page))) throw fail(400, 'Datos no válidos');
+        const day = new Date().toISOString().slice(0, 10);
+        const vid = crypto.createHash('sha256').update(String(req.headers['x-forwarded-for'] || req.socket.remoteAddress) + (req.headers['user-agent'] || '') + (process.env.AUTH_SECRET || process.env.ADMIN_PASSWORD || '') + day).digest('hex').slice(0, 12);
+        const [dd, t] = await Promise.all([db.get('views_' + day, { views: {}, uniq: {} }), db.get('views_total', { views: {}, posts: {} })]);
+        if (page) { dd.views[page] = (dd.views[page] || 0) + 1; t.views[page] = (t.views[page] || 0) + 1; const u = dd.uniq[page] = dd.uniq[page] || []; if (!u.includes(vid) && u.length < 5000) u.push(vid); }
+        ids.forEach(id => { t.posts[id] = (t.posts[id] || 0) + 1; });
+        await Promise.all([db.set('views_' + day, dd), db.set('views_total', t)]);
+        return send(res, 200, { ok: true });
+      }
       throw fail(404, 'Ruta no encontrada');
     }
 
@@ -41,6 +53,15 @@ module.exports = async (req, res) => {
 
     // ---------- API del CMS (solo la dueña) ----------
     if (!authed(req)) throw fail(401, 'No autorizado');
+    if (a === 'stats' && m === 'GET') {
+      const days = [...Array(14)].map((_, i) => new Date(Date.now() - (13 - i) * 864e5).toISOString().slice(0, 10));
+      const [rows, t, all] = await Promise.all([Promise.all(days.map(x => db.get('views_' + x, { views: {}, uniq: {} }))), db.get('views_total', { views: {}, posts: {} }), posts()]);
+      return send(res, 200, {
+        days: days.map((date, i) => ({ date, blog: rows[i].views.blog || 0, landing: rows[i].views.landing || 0, visitors: (rows[i].uniq.blog || []).length })),
+        total: { blog: t.views.blog || 0, landing: t.views.landing || 0 },
+        posts: all.filter(p => p.status === 'published').map(p => ({ id: p.id, title: p.title, views: t.posts[p.id] || 0, hearts: p.hearts || 0 })).sort((x, y) => y.views - x.views)
+      });
+    }
     if (a === 'landing' && m === 'GET') return send(res, 200, await db.get('landing', defaults));
     if (a === 'landing' && m === 'PUT') { const l = cleanLanding(body); await db.set('landing', l); return send(res, 200, l); }
 

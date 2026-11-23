@@ -10,7 +10,7 @@
 <body>
 <header>
   <h1>Panel de <b>Valeria</b></h1>
-  <nav class="tabs" id="main"><button data-g="blog">Blog</button><button data-g="landing">Landing</button></nav>
+  <nav class="tabs" id="main"><button data-g="blog">Blog</button><button data-g="landing">Landing</button><button data-g="stats">Estadísticas</button></nav>
   <div class="links"><a class="btn" href="index.html" target="_blank">Ver landing</a><a class="btn" href="blog.html" target="_blank">Ver blog</a><button id="out">Salir</button></div>
   <p id="status" role="status">Conectando…</p>
 </header>
@@ -21,12 +21,32 @@
   <section class="view" id="v-new"><div class="panel">
     <h2 id="ft">Nueva publicación</h2>
     <label>Título <input type="text" id="title" maxlength="80" autocomplete="off"></label>
-    <label>Descripción <textarea id="text" rows="6" maxlength="1200"></textarea></label>
+    <div class="lab">Descripción
+      <div class="tb" role="toolbar" aria-label="Formato del texto">
+        <select id="fsize" aria-label="Tamaño"><option value="">Tamaño</option><option value="2">Pequeño</option><option value="3">Normal</option><option value="5">Grande</option><option value="6">Enorme</option></select>
+        <button type="button" data-c="bold" title="Negrita"><b>B</b></button><button type="button" data-c="italic" title="Cursiva"><i>I</i></button><button type="button" data-c="underline" title="Subrayado"><u>U</u></button><button type="button" data-c="strikeThrough" title="Tachado"><s>S</s></button>
+        <label class="clr" title="Color del texto"><span id="ca">A</span><input type="color" id="fcolor" value="#d1538f"></label>
+        <label class="clr" title="Resaltado"><span id="cb">▮</span><input type="color" id="fback" value="#ffe14d"></label>
+        <button type="button" data-c="link" title="Enlace">Enlace</button>
+        <button type="button" data-c="insertUnorderedList" title="Lista con viñetas">• Lista</button><button type="button" data-c="insertOrderedList" title="Lista numerada">1. Lista</button>
+        <button type="button" data-c="justifyLeft" title="Izquierda">Izq</button><button type="button" data-c="justifyCenter" title="Centrar">Centro</button><button type="button" data-c="justifyRight" title="Derecha">Der</button>
+        <button type="button" data-c="removeFormat" title="Quitar formato">Limpiar</button>
+      </div>
+      <div id="text" class="editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Descripción"></div>
+    </div>
     <div class="lab">Imagen <div class="drop" id="drop"><img class="thumb" id="prev" alt="Vista previa" hidden><label class="btn" for="file" style="margin:0">Subir imagen</label><input type="file" id="file" accept="image/*" hidden><span id="fname">Ninguna imagen seleccionada</span></div></div>
     <div class="row"><button class="cafe" id="draft" type="button">Guardar borrador</button><button class="primary" id="pub" type="button">Publicar</button><button id="cancel" type="button" hidden>Cancelar edición</button></div>
   </div></section>
   <section class="view" id="v-pub"></section>
   <section class="view" id="v-draft"></section>
+
+  <section class="view" id="v-stats">
+    <div class="cards" id="kpis"></div>
+    <div class="panel"><h2>Últimos 14 días</h2><div class="chart" id="chart"></div><p class="legend"><i class="b1"></i> Blog <i class="b2"></i> Landing</p></div>
+    <div class="panel"><h2>Publicaciones</h2><div id="topposts"></div></div>
+    <label class="chk"><input type="checkbox" id="skip"> No contar mis visitas en este navegador</label>
+    <small>Cuenta visitas sin guardar tu IP. Los días van en hora UTC.</small>
+  </section>
 
   <section class="view" id="v-about"><div class="panel"><h2>Sobre mi</h2>
     <label>Texto <textarea id="aboutText" rows="5"></textarea></label>
@@ -37,6 +57,7 @@
 </main>
 <dialog id="dlg"><form method="dialog"><h2 id="dt"></h2><p id="dm" role="alert"></p><button class="primary">ok</button></form></dialog>
 <script src="js/default-data.js"></script>
+<script src="js/rich.js"></script>
 <script src="js/api.js"></script>
 <script src="js/store.js"></script>
 <script src="js/cms.js"></script>
