@@ -10,12 +10,13 @@
 <body>
 <header>
   <h1>Panel de <b>Valeria</b></h1>
+  <div class="blogbar"><select id="blogSel" aria-label="Blog"></select><button id="newBlog" type="button">+ Nuevo blog</button></div>
   <nav class="tabs" id="main"><button data-g="blog">Blog</button><button data-g="landing">Landing</button><button data-g="stats">Estadísticas</button></nav>
   <div class="links"><a class="btn" href="index.html" target="_blank">Ver landing</a><a class="btn" href="blog.html" target="_blank">Ver blog</a><button id="out">Salir</button></div>
   <p id="status" role="status">Conectando…</p>
 </header>
 <main>
-  <nav class="sub" data-sub="blog"><button data-v="new">Nueva publicación</button><button data-v="pub">Publicadas (<span id="cp">0</span>)</button><button data-v="draft">Borradores (<span id="cd">0</span>)</button></nav>
+  <nav class="sub" data-sub="blog"><button data-v="new">Nueva publicación</button><button data-v="pub">Publicadas (<span id="cp">0</span>)</button><button data-v="draft">Borradores (<span id="cd">0</span>)</button><button data-v="look">Apariencia</button></nav>
   <nav class="sub" data-sub="landing"><button data-v="about">Sobre mi</button><button data-v="languages">Lenguajes</button><button data-v="events">Eventos</button><button data-v="projects">Proyectos</button></nav>
 
   <section class="view" id="v-new"><div class="panel">
@@ -37,6 +38,18 @@
     <div class="lab">Imagen <div class="drop" id="drop"><img class="thumb" id="prev" alt="Vista previa" hidden><label class="btn" for="file" style="margin:0">Subir imagen</label><input type="file" id="file" accept="image/*" hidden><span id="fname">Ninguna imagen seleccionada</span></div></div>
     <div class="row"><button class="cafe" id="draft" type="button">Guardar borrador</button><button class="primary" id="pub" type="button">Publicar</button><button id="cancel" type="button" hidden>Cancelar edición</button></div>
   </div></section>
+  <section class="view" id="v-look"><div class="look">
+    <div class="panel"><h2>Apariencia</h2>
+      <label>Nombre del blog <input type="text" id="lkTitle" maxlength="60"></label>
+      <label>Plantilla <select id="lkTpl"></select></label>
+      <div class="cols"><label>Acento <input type="color" id="lkaccent"></label><label>Fondo <input type="color" id="lkbg"></label><label>Tarjetas <input type="color" id="lkcard"></label><label>Texto <input type="color" id="lktext"></label><label>Bordes <input type="color" id="lkborder"></label></div>
+      <label>Fuente de títulos <select id="lkhf"></select></label>
+      <label>Fuente del texto <select id="lkbf"></select></label>
+      <label>Esquinas redondeadas <input type="range" id="lkr" min="0" max="40"></label>
+      <div class="row"><button class="primary" id="lkSave" type="button">Guardar apariencia</button><button id="lkReset" type="button">Restablecer plantilla</button><a class="btn" id="lkOpen" href="#" target="_blank">Abrir blog</a><button id="lkDel" type="button" hidden>Eliminar blog</button></div>
+    </div>
+    <iframe id="lkPrev" class="prev" title="Vista previa del blog"></iframe>
+  </div></section>
   <section class="view" id="v-pub"></section>
   <section class="view" id="v-draft"></section>
 
@@ -55,8 +68,14 @@
   <section class="view" id="v-events"><div class="panel"><h2>Eventos</h2><div id="events"></div><button data-add="events">+ Agregar evento</button></div></section>
   <section class="view" id="v-projects"><div class="panel"><h2>Proyectos</h2><div id="projects"></div><button data-add="projects">+ Agregar proyecto</button></div></section>
 </main>
+<dialog id="nbd"><form method="dialog"><h2>Nuevo blog</h2>
+  <label>Nombre <input type="text" id="nbTitle" maxlength="60"></label>
+  <label>Dirección (tu blog será /b/direccion) <input type="text" id="nbSlug" maxlength="30"></label>
+  <label>Plantilla <select id="nbTpl"></select></label><p id="nbErr" class="err"></p>
+  <div class="row"><button class="primary" id="nbOk" value="ok">Crear</button><button value="cancel">Cancelar</button></div></form></dialog>
 <dialog id="dlg"><form method="dialog"><h2 id="dt"></h2><p id="dm" role="alert"></p><button class="primary">ok</button></form></dialog>
 <script src="js/default-data.js"></script>
+<script src="js/themes.js"></script>
 <script src="js/rich.js"></script>
 <script src="js/api.js"></script>
 <script src="js/store.js"></script>

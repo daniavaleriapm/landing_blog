@@ -9,7 +9,7 @@ const resize = (file, max, jpg) => new Promise(ok => { const r = new FileReader(
   c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL(!jpg && file.type === 'image/png' ? 'image/png' : 'image/jpeg', .85)); }; im.src = r.result; }; r.readAsDataURL(file); });
 
 // ---- Navegación: Blog | Landing ----
-const G = { blog: ['new', 'pub', 'draft'], landing: ['about', 'languages', 'events', 'projects'], stats: ['stats'] };
+const G = { blog: ['new', 'pub', 'draft', 'look'], landing: ['about', 'languages', 'events', 'projects'], stats: ['stats'] };
 function show(g, v) {
   v = v || G[g][0];
   $$('#main button').forEach(b => b.classList.toggle('on', b.dataset.g === g));
@@ -48,13 +48,13 @@ function drawPosts() {
   }
   $('#cp').textContent = posts.filter(p => p.status === 'published').length; $('#cd').textContent = posts.filter(p => p.status === 'draft').length;
 }
-const refresh = async () => { posts = await API.req('/posts', {}, true); drawPosts(); };
+const refresh = async () => { posts = await API.req('/posts' + bq(), {}, true); drawPosts(); };
 async function submit(status) {
   const p = { title: $('#title').value.trim(), text: getText(), image: img }, m = missing(p, status === 'published');
   flag(m); if (m.length) return note('Falta completar: ' + m.join(', ') + '.');
   try {
     if (p.image.startsWith('data:')) p.image = await API.upload(p.image);
-    await API.req(edit ? '/posts/' + edit : '/posts', { method: edit ? 'PUT' : 'POST', body: { ...p, status } }, true);
+    await API.req((edit ? '/posts/' + edit : '/posts') + bq(), { method: edit ? 'PUT' : 'POST', body: { ...p, status } }, true);
     clear(); await refresh(); show('blog', status === 'published' ? 'pub' : 'draft'); note(status === 'published' ? 'Tu publicación ya está en el blog.' : 'Borrador guardado.', 'LISTO');
   } catch (e) { note(e.message); }
 }
@@ -63,9 +63,9 @@ document.addEventListener('click', async e => {
   const id = a.dataset.edit || a.dataset.pub || a.dataset.del, p = posts.find(x => x.id === id); if (!p) return;
   if (a.dataset.edit) return load(p);
   try {
-    if (a.dataset.del) { if (!confirm('¿Borrar esta publicación?')) return; await API.req('/posts/' + id, { method: 'DELETE' }, true); return refresh(); }
+    if (a.dataset.del) { if (!confirm('¿Borrar esta publicación?')) return; await API.req('/posts/' + id + bq(), { method: 'DELETE' }, true); return refresh(); }
     const m = missing(p, true); if (m.length) { load(p); flag(m); return note('Para publicar falta: ' + m.join(', ') + '.'); }
-    await API.req('/posts/' + id, { method: 'PUT', body: { ...p, status: 'published' } }, true); await refresh(); show('blog', 'pub'); note('Tu publicación ya está en el blog.', 'LISTO');
+    await API.req('/posts/' + id + bq(), { method: 'PUT', body: { ...p, status: 'published' } }, true); await refresh(); show('blog', 'pub'); note('Tu publicación ya está en el blog.', 'LISTO');
   } catch (err) { note(err.message); }
 });
 $('#file').onchange = async e => { const f = e.target.files[0]; if (!f) return; img = await resize(f, 900, true); $('#prev').src = img; $('#prev').hidden = false; $('#fname').textContent = f.name; $('#drop').classList.remove('bad'); };
@@ -114,10 +114,46 @@ $$('[data-add]').forEach(b => b.onclick = () => { const k = b.dataset.add; data[
 $('#aboutText').oninput = e => { data.about.text = e.target.value; save(); };
 $('#aboutFile').onchange = async e => { const f = e.target.files[0]; if (!f) return; const u = await resize(f, 700); data.about.photo = u; $('#aboutPhoto').src = u; save(); };
 
+// ---- VARIOS BLOGS Y APARIENCIA ----
+let blogs = [], blog = 'valeria';
+const bq = () => '?blog=' + encodeURIComponent(blog), cur = () => blogs.find(b => b.slug === blog) || blogs[0];
+const fill = (sel, items) => { sel.innerHTML = items.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join(''); };
+const TK = ['accent', 'bg', 'card', 'text', 'border'];
+fill($('#lkTpl'), Object.entries(Themes.templates).map(([k, t]) => [k, t.name])); fill($('#nbTpl'), Object.entries(Themes.templates).map(([k, t]) => [k, t.name]));
+fill($('#lkhf'), Themes.fonts.map(f => [f, f])); fill($('#lkbf'), Themes.fonts.map(f => [f, f]));
+function setLook(t) { TK.forEach(k => { $('#lk' + k).value = t[k]; }); $('#lkhf').value = t.headingFont; $('#lkbf').value = t.bodyFont; $('#lkr').value = t.radius; }
+const lookTheme = () => ({ template: $('#lkTpl').value, tokens: { ...Object.fromEntries(TK.map(k => [k, $('#lk' + k).value])), headingFont: $('#lkhf').value, bodyFont: $('#lkbf').value, radius: +$('#lkr').value } });
+const preview = () => { const w = $('#lkPrev').contentWindow; if (w) w.postMessage({ type: 'theme', theme: lookTheme() }, location.origin); };
+function drawBlogs() { fill($('#blogSel'), blogs.map(b => [b.slug, b.title])); $('#blogSel').value = blog; }
+function drawLook() {
+  const b = cur(); if (!b) return;
+  const t = Themes.resolve(b.theme); $('#lkTitle').value = b.title; $('#lkTpl').value = t.template; setLook(t);
+  $('#lkOpen').href = '/b/' + b.slug; $('#lkDel').hidden = b.slug === 'valeria'; $('#lkPrev').src = '/b/' + b.slug + '?preview=1';
+}
+async function saveBlog(theme) {
+  try { const r = await API.req('/blogs/' + blog, { method: 'PUT', body: { title: $('#lkTitle').value, theme } }, true); Object.assign(cur(), r); drawBlogs(); drawLook(); note('Apariencia guardada.', 'LISTO'); }
+  catch (e) { note(e.message); }
+}
+$('#lkTpl').onchange = () => { setLook(Themes.templates[$('#lkTpl').value]); preview(); };
+$$('#v-look input[type=color], #v-look select:not(#lkTpl), #lkr').forEach(el => el.addEventListener('input', preview));
+$('#lkSave').onclick = () => saveBlog(lookTheme());
+$('#lkReset').onclick = () => saveBlog({ template: $('#lkTpl').value, tokens: {} });
+$('#lkDel').onclick = async () => { if (!confirm('¿Eliminar este blog y todas sus publicaciones?')) return; try { await API.req('/blogs/' + blog, { method: 'DELETE' }, true); blogs = blogs.filter(b => b.slug !== blog); blog = 'valeria'; drawBlogs(); clear(); await refresh(); drawLook(); } catch (e) { note(e.message); } };
+$('#blogSel').onchange = async e => { blog = e.target.value; clear(); drawLook(); try { await refresh(); } catch (err) { note(err.message); } };
+$('#newBlog').onclick = () => { $('#nbTitle').value = $('#nbSlug').value = ''; $('#nbErr').textContent = ''; $('#nbd').showModal(); };
+$('#nbTitle').oninput = e => { $('#nbSlug').value = e.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30); };
+$('#nbOk').onclick = async e => {
+  e.preventDefault();
+  try {
+    const nb = await API.req('/blogs', { method: 'POST', body: { title: $('#nbTitle').value, slug: $('#nbSlug').value, template: $('#nbTpl').value } }, true);
+    blogs.push(nb); blog = nb.slug; $('#nbd').close(); drawBlogs(); clear(); await refresh(); drawLook(); show('blog', 'look');
+  } catch (err) { $('#nbErr').textContent = err.message; }
+};
+
 // ---- ESTADÍSTICAS ----
 async function loadStats() {
   try {
-    const s = await API.req('/stats', {}, true), last = s.days[s.days.length - 1], max = Math.max(1, ...s.days.map(d => Math.max(d.blog, d.landing)));
+    const s = await API.req('/stats' + bq(), {}, true), last = s.days[s.days.length - 1], max = Math.max(1, ...s.days.map(d => Math.max(d.blog, d.landing)));
     const kpi = [['Vistas del blog', s.total.blog], ['Vistas de la landing', s.total.landing], ['Visitantes del blog hoy', last.visitors], ['Vistas del blog (14 días)', s.days.reduce((a, d) => a + d.blog, 0)], ['Corazones', s.posts.reduce((a, p) => a + p.hearts, 0)]];
     $('#kpis').innerHTML = kpi.map(([l, v]) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('');
     $('#chart').innerHTML = s.days.map(d => `<div class="col" title="${d.date}: blog ${d.blog}, landing ${d.landing}"><div class="pair"><i class="b1" style="height:${d.blog / max * 100}%"></i><i class="b2" style="height:${d.landing / max * 100}%"></i></div><small>${d.date.slice(8)}/${d.date.slice(5, 7)}</small></div>`).join('');
@@ -129,4 +165,4 @@ $('#skip').onchange = e => { try { e.target.checked ? localStorage.setItem('mb-s
 
 // ---- Arranque ----
 const [g0, v0] = location.hash.slice(1).split('/'); show(G[g0] ? g0 : 'blog', G[g0] && G[g0].includes(v0) ? v0 : undefined);
-Promise.all([refresh(), MiBlogStore.load(true).then(d => { data = d; drawLanding(); })]).then(() => say('Conectado ✔ Los cambios se guardan en el servidor.')).catch(e => say('No se pudo cargar: ' + e.message));
+Promise.all([API.req('/blogs', {}, true).then(l => { blogs = l; drawBlogs(); drawLook(); }), refresh(), MiBlogStore.load(true).then(d => { data = d; drawLanding(); })]).then(() => say('Conectado ✔ Los cambios se guardan en el servidor.')).catch(e => say('No se pudo cargar: ' + e.message));

@@ -11,7 +11,7 @@ http.createServer((req, res) => {
       req.query = { path: u.pathname.slice(5).split('/').filter(Boolean) }; api(req, res);
     }); return;
   }
-  const f = path.join(ROOT, u.pathname === '/' ? 'index.html' : decodeURIComponent(u.pathname));
+  const f = path.join(ROOT, u.pathname === '/' ? 'index.html' : /^\/b\/[^/]+\/?$/.test(u.pathname) ? 'b.html' : decodeURIComponent(u.pathname));
   if (u.pathname.includes('/.') || !f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.statusCode = 404; return res.end('No encontrado'); }
   res.setHeader('Content-Type', types[path.extname(f)] || 'application/octet-stream'); fs.createReadStream(f).pipe(res);
 }).listen(3000, () => console.log('http://localhost:3000  (contraseña local: ' + process.env.ADMIN_PASSWORD + ')'));

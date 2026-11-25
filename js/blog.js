@@ -18,7 +18,7 @@ const MB={
 };
 // ---- Vista pública: datos desde la API (sin servidor se muestran ejemplos) ----
 if(document.getElementById('feed')){
- const feed=document.getElementById('feed'),sort=document.getElementById('sort'),open=new Set();let desc=true,all=[],rt;
+ const slug=(location.pathname.match(/^\/b\/([^/]+)/)||[])[1]||document.body.dataset.blog||'valeria',feed=document.getElementById('feed'),sort=document.getElementById('sort'),open=new Set();let desc=true,all=[],rt;
  // La publicación más reciente se muestra completa; las demás en vista previa hasta pulsar "Leer más"
  const fit=()=>feed.querySelectorAll('.txt.clamp').forEach(t=>{const s=t.scrollHeight<=t.clientHeight+2;t.classList.toggle('short',s);const m=t.closest('.post').querySelector('.more');if(m)m.hidden=s});
  const draw=id=>{const lk=MB.liked(),ps=MB.byDate(all,desc),top=MB.byDate(all,true)[0];
@@ -35,8 +35,12 @@ if(document.getElementById('feed')){
   const id=b.dataset.id,p=all.find(x=>x.id===id),lk=MB.liked(),on=!lk.includes(id);
   if(on){lk.push(id);p.hearts=(p.hearts||0)+1}else{lk.splice(lk.indexOf(id),1);p.hearts=Math.max(0,(p.hearts||0)-1)}
   MB.setLiked(lk);draw(id);
-  try{p.hearts=(await API.req('/public/posts/'+id+'/hearts',{method:on?'POST':'DELETE'})).hearts;draw(id)}catch(err){}});
+  try{p.hearts=(await API.req('/public/posts/'+id+'/hearts?blog='+encodeURIComponent(slug),{method:on?'POST':'DELETE'})).hearts;draw(id)}catch(err){}});
  sort.onclick=()=>{desc=!desc;sort.textContent=desc?'Más recientes':'Más antiguas';draw()};
  addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(fit,150)});if(document.fonts)document.fonts.ready.then(fit);
- API.req('/public/posts').then(r=>all=r).catch(()=>all=MB.samples).then(()=>draw());
+addEventListener('message',e=>{if(e.origin===location.origin&&e.data&&e.data.type==='theme'&&typeof Themes!=='undefined')Themes.apply(e.data.theme)});
+ const tt=document.getElementById('blogTitle');
+ API.req('/public/blogs/'+slug).then(r=>{all=r.posts;if(tt)tt.textContent=r.title;document.title=r.title;if(typeof Themes!=='undefined')Themes.apply(r.theme)})
+  .catch(e=>{all=typeof Themes!=='undefined'?[]:MB.samples;if(tt)tt.textContent=e.status===404?'Este blog no existe':'No se pudo cargar el blog'})
+  .then(()=>{draw();document.documentElement.classList.add('ready')});
 }

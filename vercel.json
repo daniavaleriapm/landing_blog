@@ -1,3 +1,6 @@
 {
-  "rewrites": [{ "source": "/api/v1/:path*", "destination": "/api?path=v1/:path*" }]
+  "rewrites": [
+    { "source": "/api/v1/:path*", "destination": "/api?path=v1/:path*" },
+    { "source": "/b/:slug", "destination": "/b.html" }
+  ]
 }
